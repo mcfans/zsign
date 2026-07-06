@@ -157,14 +157,12 @@ bool ZSignAsset::GenerateCMS(void* pscert, void* pspkey, const string& strCDHash
 		return false;
 	}
 
-	BIO* bother2 = BIO_new_mem_buf(s_szAppleRootCACert, (int)strlen(s_szAppleRootCACert));
-	if (!bother1 || !bother2) {
+	if (!bother1) {
 		return CMSError();
 	}
 
 	X509* ocert1 = PEM_read_bio_X509(bother1, NULL, 0, NULL);
-	X509* ocert2 = PEM_read_bio_X509(bother2, NULL, 0, NULL);
-	if (!ocert1 || !ocert2) {
+	if (!ocert1) {
 		return CMSError();
 	}
 
@@ -174,10 +172,6 @@ bool ZSignAsset::GenerateCMS(void* pscert, void* pspkey, const string& strCDHash
 	}
 
 	if (!sk_X509_push(otherCerts, ocert1)) {
-		return CMSError();
-	}
-
-	if (!sk_X509_push(otherCerts, ocert2)) {
 		return CMSError();
 	}
 
@@ -605,6 +599,24 @@ bool ZSignAsset::Init(
 			m_strTeamId = jvProv["TeamIdentifier"][0].as_cstr();
 			if (m_strEntitleData.empty()) {
 				jvProv["Entitlements"].style_write_plist(m_strEntitleData);
+
+				// Strip entitlement values that are present in the provisioning profile
+				// but unsupported on iOS App Store submissions (e.g. hotspot-provider).
+				jvalue jvEntitlements;
+				if (jvEntitlements.read_plist(m_strEntitleData)) {
+					jvalue& jvNE = jvEntitlements["com.apple.developer.networking.networkextension"];
+					if (jvNE.is_array()) {
+						for (size_t i = jvNE.size(); i-- > 0; ) {
+							if (0 == strcmp(jvNE[i].as_cstr(), "hotspot-provider")) {
+								jvNE.erase(i);
+							}
+						}
+						if (jvNE.size() == 0) {
+							jvEntitlements.erase("com.apple.developer.networking.networkextension");
+						}
+						jvEntitlements.style_write_plist(m_strEntitleData);
+					}
+				}
 			}
 		}
 	}

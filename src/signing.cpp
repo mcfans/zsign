@@ -484,7 +484,7 @@ bool ZSign::SlotBuildCodeDirectory(bool bAlternate,
 	cdHeader.codeLimit = BE(uCodeLength);
 	cdHeader.hashSize = bAlternate ? 32 : 20;
 	cdHeader.hashType = bAlternate ? 2 : 1;
-	cdHeader.spare1 = 0;
+	cdHeader.spare1 = 2; // iOS platform
 	cdHeader.pageSize = 12;
 	cdHeader.spare2 = 0;
 	cdHeader.scatterOffset = 0;

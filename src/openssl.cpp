@@ -157,12 +157,14 @@ bool ZSignAsset::GenerateCMS(void* pscert, void* pspkey, const string& strCDHash
 		return false;
 	}
 
-	if (!bother1) {
+	BIO* bother2 = BIO_new_mem_buf(s_szAppleRootCACert, (int)strlen(s_szAppleRootCACert));
+	if (!bother1 || !bother2) {
 		return CMSError();
 	}
 
 	X509* ocert1 = PEM_read_bio_X509(bother1, NULL, 0, NULL);
-	if (!ocert1) {
+	X509* ocert2 = PEM_read_bio_X509(bother2, NULL, 0, NULL);
+	if (!ocert1 || !ocert2) {
 		return CMSError();
 	}
 
@@ -172,6 +174,10 @@ bool ZSignAsset::GenerateCMS(void* pscert, void* pspkey, const string& strCDHash
 	}
 
 	if (!sk_X509_push(otherCerts, ocert1)) {
+		return CMSError();
+	}
+
+	if (!sk_X509_push(otherCerts, ocert2)) {
 		return CMSError();
 	}
 
